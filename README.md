@@ -1,12 +1,12 @@
 # links
 
 
-https://github.com/ChenPeleg/hadracha-mirror
-https://github.com/ChenPeleg/my-cv
-https://github.com/ChenPeleg/birthday-greeting
-https://github.com/ChenPeleg/riddles-for-all
+[hadracha-mirror](https://github.com/ChenPeleg/hadracha-mirror)
+[my-cv](https://github.com/ChenPeleg/my-cv)
+[birthday-greeting](https://github.com/ChenPeleg/birthday-greeting)
+[riddles-for-all](https://github.com/ChenPeleg/riddles-for-all)
 
-https://chenpeleg.github.io/riddles-for-all/
+[riddles-for-all](https://chenpeleg.github.io/riddles-for-all/)
 
-https://jules.google.com/session
+[session](https://jules.google.com/session)
 
