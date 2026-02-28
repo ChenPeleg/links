@@ -1,0 +1,84 @@
+name: Copilot Usage Report
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  send-copilot-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Fetch Copilot Usage
+        id: copilot-usage
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          github-token: ${{ secrets.COPILOT_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const timestamp = new Date().toISOString();
+            let reportLines = [];
+            reportLines.push(`GitHub Copilot Usage Report`);
+            reportLines.push(`Generated: ${timestamp}`);
+            reportLines.push(`Repository: ${context.repo.owner}/${context.repo.repo}`);
+            reportLines.push(`Triggered by push to main`);
+            reportLines.push(`Commit: ${context.sha}`);
+            reportLines.push('');
+
+            try {
+              const response = await github.request('GET /orgs/{org}/copilot/usage', {
+                org: owner,
+                headers: {
+                  'X-GitHub-Api-Version': '2022-11-28'
+                }
+              });
+              const data = response.data;
+              reportLines.push('=== Copilot Usage Data ===');
+              if (Array.isArray(data) && data.length > 0) {
+                for (const entry of data) {
+                  reportLines.push('');
+                  reportLines.push(`Date: ${entry.day}`);
+                  reportLines.push(`  Total suggestions count:  ${entry.total_suggestions_count ?? 'N/A'}`);
+                  reportLines.push(`  Total acceptances count:  ${entry.total_acceptances_count ?? 'N/A'}`);
+                  reportLines.push(`  Total lines suggested:    ${entry.total_lines_suggested ?? 'N/A'}`);
+                  reportLines.push(`  Total lines accepted:     ${entry.total_lines_accepted ?? 'N/A'}`);
+                  reportLines.push(`  Total active users:       ${entry.total_active_users ?? 'N/A'}`);
+                  reportLines.push(`  Total chat acceptances:   ${entry.total_chat_acceptances ?? 'N/A'}`);
+                  reportLines.push(`  Total chat turns:         ${entry.total_chat_turns ?? 'N/A'}`);
+                  reportLines.push(`  Total active chat users:  ${entry.total_active_chat_users ?? 'N/A'}`);
+                }
+              } else {
+                reportLines.push('No usage data available for this period.');
+              }
+            } catch (error) {
+              reportLines.push('=== Copilot Usage Data ===');
+              reportLines.push(`Note: Could not retrieve Copilot usage data via the org API.`);
+              reportLines.push(`Reason: ${error.message}`);
+              reportLines.push('');
+              reportLines.push('To enable this report, ensure:');
+              reportLines.push('  1. The repository owner has a GitHub organization with Copilot enabled.');
+              reportLines.push('  2. A personal access token with the "copilot" and "manage_billing:copilot" scopes');
+              reportLines.push('     is stored as a repository secret named COPILOT_TOKEN.');
+              reportLines.push('  3. Replace GITHUB_TOKEN with COPILOT_TOKEN in the workflow github-token input.');
+            }
+
+            const report = reportLines.join('\n');
+            core.setOutput('report', report);
+            core.setOutput('timestamp', timestamp);
+            return report;
+
+      - name: Send Email Report
+        uses: dawidd6/action-send-mail@2cea9617b09d79a095af21254fbcb7ae95903dde # v3.12.0
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "GitHub Copilot Usage Report — ${{ github.repository }}"
+          to: chenpeleg@gmail.com
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          body: ${{ steps.copilot-usage.outputs.report }}
